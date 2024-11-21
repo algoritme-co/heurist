@@ -6,11 +6,11 @@ from app.database import save_universe, get_universe_by_title
 import json
 import logging
 
-# Configura o logger
+# Configure the logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Inicializa o cliente Watsonx
+# Initialize the Watsonx client
 chat = ChatWatsonx(
     model_id="meta-llama/llama-3-70b-instruct",
     url=Config.WATSONX_URL,
@@ -18,100 +18,95 @@ chat = ChatWatsonx(
     params={"temperature": 0.7, "max_tokens": 2000},
 )
 
-# Estado temporário da conversa
+# Temporary conversation state
 conversation_state = {"decision": None, "variables": {}, "context": None}
 
-
 def initiate_conversation():
-    """Inicia uma nova conversa e coleta a decisão inicial."""
+    """Starts a new conversation and collects the initial decision."""
     return {
-        "message": "Bem-vindo! Qual decisão você gostaria de explorar? Por favor, descreva sua decisão inicial."
+        "message": "Welcome! What decision would you like to explore? Please describe your initial decision."
     }
 
 def validate_input(parameter: str, parameter_name: str):
     """
-    Valida se o parâmetro fornecido não está vazio ou nulo.
+    Validates if the provided parameter is not empty or null.
     """
     if not parameter or not parameter.strip():
-        raise ValueError(f"O parâmetro '{parameter_name}' não pode estar vazio.")
-
-
+        raise ValueError(f"The parameter '{parameter_name}' cannot be empty.")
 
 def detect_context(decision_text: str) -> str:
     """
-    Detecta o contexto da decisão com base no texto fornecido.
+    Detects the decision context based on the provided text.
     """
     try:
         messages = [
-            ("system", "Você é um assistente que analisa o tipo de decisão do usuário."),
-            ("human", f"Com base no texto '{decision_text}', identifique se é uma decisão pessoal, empresarial, educacional, de saúde ou outro tipo.")
+            ("system", "You are an assistant that analyzes the type of user decision."),
+            ("human", f"Based on the text '{decision_text}', identify if it is a personal, business, educational, health, or other type of decision.")
         ]
         response = chat.invoke(messages)
         context = response.content.strip().lower()
-        logger.info(f"Contexto detectado: {context}")
-        return context if context in ["pessoal", "empresarial", "educacional", "saúde", "viagens"] else "outro"
+        logger.info(f"Detected context: {context}")
+        return context if context in ["personal", "business", "educational", "health", "travel"] else "other"
     except Exception as e:
-        logger.error(f"Erro ao detectar contexto: {str(e)}")
-        return "outro"  # Fallback para evitar falhas
-
+        logger.error(f"Error detecting context: {str(e)}")
+        return "other"  # Fallback to avoid failures
 
 def collect_variables(context: str) -> dict:
     """
-    Retorna as variáveis relevantes com base no contexto.
+    Returns relevant variables based on the context.
     """
     contexts = {
-        "empresarial": {
-            "budget": "Qual é o orçamento disponível?",
-            "timeline": "Qual é o prazo estimado (em dias)?",
-            "target_audience": "Quem é o público-alvo dessa decisão?",
-            "resources": "Quais recursos humanos ou materiais estão disponíveis?",
-            "risks": "Quais são os possíveis riscos?",
-            "expected_roi": "Qual é a expectativa de retorno sobre investimento (ROI)?",
+        "business": {
+            "budget": "What is the available budget?",
+            "timeline": "What is the estimated timeline (in days)?",
+            "target_audience": "Who is the target audience for this decision?",
+            "resources": "What human or material resources are available?",
+            "risks": "What are the possible risks?",
+            "expected_roi": "What is the expected return on investment (ROI)?",
         },
-        "pessoal": {
-            "personal_budget": "Quanto você pode gastar?",
-            "available_time": "Quanto tempo você tem disponível?",
-            "priorities": "Quais são suas prioridades pessoais?",
-            "location": "Onde você pretende implementar essa decisão?",
-            "emotional_impact": "Qual seria o impacto emocional dessa decisão?",
-            "long_term_consequences": "Quais são as consequências futuras esperadas?",
+        "personal": {
+            "personal_budget": "How much can you spend?",
+            "available_time": "How much time do you have available?",
+            "priorities": "What are your personal priorities?",
+            "location": "Where do you intend to implement this decision?",
+            "emotional_impact": "What would be the emotional impact of this decision?",
+            "long_term_consequences": "What are the expected long-term consequences?",
         },
-        "educacional": {
-            "goal": "Qual é o objetivo do curso ou aprendizado?",
-            "cost": "Qual é o custo estimado?",
-            "duration": "Quanto tempo você pode dedicar?",
-            "flexibility": "Quão flexíveis são os horários?",
-            "format": "A preferência é presencial ou online?",
-            "career_impact": "Qual é o impacto esperado na sua carreira?",
+        "educational": {
+            "goal": "What is the goal of the course or learning?",
+            "cost": "What is the estimated cost?",
+            "duration": "How much time can you dedicate?",
+            "flexibility": "How flexible are the schedules?",
+            "format": "Do you prefer in-person or online?",
+            "career_impact": "What is the expected impact on your career?",
         },
-        "saúde": {
-            "current_condition": "Qual é sua condição de saúde atual?",
-            "cost": "Qual é o custo estimado do tratamento?",
-            "duration": "Quanto tempo você pode dedicar ao cuidado?",
-            "impact_on_life": "Como isso afetará sua qualidade de vida?",
-            "risks": "Existem riscos associados?",
+        "health": {
+            "current_condition": "What is your current health condition?",
+            "cost": "What is the estimated cost of treatment?",
+            "duration": "How much time can you dedicate to care?",
+            "impact_on_life": "How will this affect your quality of life?",
+            "risks": "Are there associated risks?",
         },
-        "viagens": {
-            "budget": "Qual é o orçamento da viagem?",
-            "destination": "Qual é o destino pretendido?",
-            "duration": "Quantos dias você pretende viajar?",
-            "purpose": "Qual é o objetivo da viagem (lazer, negócios, cultura)?",
-            "risks": "Existem riscos, como condições climáticas ou restrições?",
+        "travel": {
+            "budget": "What is the travel budget?",
+            "destination": "What is the intended destination?",
+            "duration": "How many days do you plan to travel?",
+            "purpose": "What is the purpose of the travel (leisure, business, culture)?",
+            "risks": "Are there risks, such as weather conditions or restrictions?",
         },
     }
     variables = contexts.get(context, {"general_details": "Please provide more details about your decision."})
-    logger.info(f"Variáveis para o contexto '{context}': {variables}")
+    logger.info(f"Variables for context '{context}': {variables}")
     return variables
-
 
 def collect_input(user_input: dict):
     """
-    Coleta a entrada do usuário e atualiza o estado da conversa.
+    Collects user input and updates the conversation state.
     """
     decision_text = user_input.get("decision", "")
     details = user_input.get("details", {})
 
-    # Reinicia o estado se uma nova decisão for fornecida
+    # Reset state if a new decision is provided
     if decision_text and decision_text != conversation_state.get("decision"):
         conversation_state["decision"] = decision_text
         conversation_state["variables"] = {}
@@ -120,76 +115,73 @@ def collect_input(user_input: dict):
 
         variables_questions = collect_variables(context)
         return {
-            "message": "Entendido. Por favor, forneça as seguintes informações:",
+            "message": "Understood. Please provide the following information:",
             "questions": variables_questions,
         }
 
-    # Coleta variáveis se elas ainda não estiverem definidas
+    # Collect variables if not already defined
     if not conversation_state["variables"]:
         if not details:
-            return {"message": "Por favor, insira as variáveis solicitadas."}
+            return {"message": "Please enter the requested variables."}
 
         conversation_state["variables"] = details
         return {
-            "message": "Obrigado! Dados completos. Pronto para iniciar a simulação.",
+            "message": "Thank you! Data complete. Ready to start the simulation.",
             "state": conversation_state,
         }
 
-    # Caso os dados já tenham sido coletados
-    return {"message": "Todos os dados já foram coletados. Pronto para simular."}
-
-
-
+    # If data is already collected
+    return {"message": "All data has been collected. Ready to simulate."}
 
 def simulate_decision(num_scenarios=9):
     """
-    Simula múltiplos cenários com base nos dados coletados.
+    Simulates multiple scenarios based on the collected data.
     """
     decision = conversation_state.get("decision")
     variables = conversation_state.get("variables")
-    context = conversation_state.get("context", "outro")
+    context = conversation_state.get("context", "other")
 
     if not decision or not variables:
-        return {"error": "Dados insuficientes para simulação. Certifique-se de fornecer a decisão e as variáveis."}
+        return {"error": "Insufficient data for simulation. Ensure the decision and variables are provided."}
 
     try:
         variable_text = "\n".join([f"{key}: {value}" for key, value in variables.items()])
         prompt = (
-            f"Baseado na decisão '{decision}' e nas seguintes variáveis:\n{variable_text}\n"
-            f"Crie {num_scenarios} cenários únicos no contexto '{context}'. Para cada cenário:\n"
-            "- Inicie com o título do cenário.\n"
-            "- Apresente uma narrativa detalhada e completa.\n"
-            "- Destaque benefícios específicos e realistas (prefixo: 'Benefícios:').\n"
-            "- Descreva desafios claros (prefixo: 'Desafios:').\n"
-            "- Inclua recomendações práticas (prefixo: 'Recomendações:').\n"
-            "Separe claramente cada cenário com a palavra 'CENÁRIO' seguida de um número."
+            f"Based on the decision '{decision}' and the following variables:\n{variable_text}\n"
+            f"Create {num_scenarios} unique scenarios in the context '{context}'. For each scenario:\n"
+            "- Start with the scenario title.\n"
+            "- Present a detailed and complete narrative.\n"
+            "- Highlight specific and realistic benefits (prefix: 'Benefits:').\n"
+            "- Describe clear challenges (prefix: 'Challenges:').\n"
+            "- Include practical recommendations (prefix: 'Recommendations:').\n"
+            "Clearly separate each scenario with the word 'SCENARIO' followed by a number."
         )
 
         messages = [
-            ("system", "Você é um assistente que cria cenários detalhados baseados em decisões."),
+            ("system", "You are an assistant that creates detailed scenarios based on decisions."),
             ("human", prompt)
         ]
 
         response = chat.invoke(messages)
         raw_response = response.content.strip()
 
-        scenarios_raw = raw_response.split("\nCENÁRIO ")
+        scenarios_raw = raw_response.split("\nSCENARIO ")
         scenarios = []
 
         for i, scenario_text in enumerate(scenarios_raw):
             if i == 0:
-                continue  # Ignorar introdução
+                continue  # Skip introduction
             scenario_parts = scenario_text.split("\n", 1)
             scenario_title = scenario_parts[0].strip()
             scenario_details = scenario_parts[1].strip() if len(scenario_parts) > 1 else ""
 
             scenarios.append({
-                "universe": f"Universo {i}",
+                "universe": f"Universe {i}",
                 "title": scenario_title,
                 "narrative": scenario_details
             })
 
-        # Salvar no banco de dados
+        # Save to database
         universe_data = {
             "decision": decision,
             "context": context,
@@ -199,109 +191,10 @@ def simulate_decision(num_scenarios=9):
         save_universe(universe_data)
 
         return {
-            "message": "Simulação concluída com sucesso!",
+            "message": "Simulation completed successfully!",
             "scenarios": scenarios
         }
 
     except Exception as e:
-        logger.error(f"Erro ao simular cenários: {str(e)}")
-        return {"error": f"Erro ao simular cenários: {str(e)}"}
-    
-
-
-
-def initiate_universe_chat(universe_title: str):
-    """
-    Inicia uma conversa com o LLM baseada no contexto de um universo.
-    """
-    try:
-        validate_input(universe_title, "universe_title")
-        
-        # Recupera o universo do banco
-        universe_data = get_universe_by_title(universe_title)
-        if not universe_data:
-            raise ValueError(f"Universo '{universe_title}' não encontrado no banco de dados.")
-
-        # Busca o cenário correto no array
-        scenario = next(
-            (s for s in universe_data.get("scenarios", []) if s["title"] == universe_title),
-            None,
-        )
-        if not scenario:
-            raise ValueError(f"Narrativa para o título '{universe_title}' não encontrada.")
-
-        narrative = scenario["narrative"]
-        variables = universe_data.get("variables", {})
-        variable_text = "\n".join([f"{key}: {value}" for key, value in variables.items()])
-
-        messages = [
-            ("system",
-             "Você é um assistente especializado em ajudar usuários a explorar cenários simulados para tomada de decisões."),
-            ("human",
-             f"Contexto do universo '{universe_title}': {narrative}.\n"
-             f"Variáveis:\n{variable_text}\n"
-             "Este universo foi criado com base em uma decisão do usuário. Por favor, forneça informações úteis e específicas para este universo.")
-        ]
-
-        response = chat.invoke(messages)
-        bot_response = response.content.strip()
-
-        if not bot_response:
-            raise ValueError("Resposta vazia do LLM ao iniciar o contexto do universo.")
-
-        return {"message": "Conversa iniciada com sucesso.", "response": bot_response}
-
-    except ValueError as ve:
-        logger.error(f"Erro de validação: {str(ve)}")
-        return {"error": str(ve)}
-    except Exception as e:
-        logger.error(f"Erro ao iniciar conversa com o universo: {str(e)}")
-        return {"error": f"Erro ao iniciar conversa com o universo: {str(e)}"}
-
-
-def continue_universe_chat(context: str, user_message: str) -> dict:
-    """
-    Continua o chat com base no contexto do universo e na mensagem do usuário.
-    """
-    try:
-        validate_input(context, "context")
-        validate_input(user_message, "user_message")
-
-        # Cria o prompt com o contexto do universo
-        prompt = (
-            "Você é um assistente especializado em explorar cenários simulados ('universos') criados pela plataforma "
-            "para ajudar usuários a tomar decisões informadas. A palavra 'universo' não se refere ao espaço ou astronomia. "
-            "Cada universo representa um cenário específico baseado na decisão e nas informações fornecidas pelo usuário.\n\n"
-            f"Contexto do universo: {context}\n\n"
-            "Instruções:\n"
-            "- Responda exclusivamente com base no contexto acima.\n"
-            "- Forneça conselhos práticos e específicos para explorar desafios, benefícios e recomendações do universo.\n"
-            "- Use uma linguagem clara e objetiva.\n"
-            "- Evite informações fora de escopo ou alucinações.\n\n"
-            f"Pergunta do usuário: {user_message}\n\n"
-        )
-
-        # Envia a mensagem para o modelo
-        messages = [("system", prompt), ("human", user_message)]
-        response = chat.invoke(messages)
-        bot_response = response.content.strip()
-
-        if not bot_response:
-            raise ValueError("Resposta vazia do LLM ao continuar o chat.")
-
-        return {"response": bot_response}
-
-    except ValueError as ve:
-        logger.error(f"Erro de validação: {str(ve)}")
-        return {"error": str(ve)}
-    except Exception as e:
-        logger.error(f"Erro ao continuar o chat: {str(e)}")
-        return {"error": "Não foi possível continuar a conversa. Tente novamente mais tarde."}
-
-
-
-
-
-
-
-
+        logger.error(f"Error simulating scenarios: {str(e)}")
+        return {"error": f"Error simulating scenarios: {str(e)}"}
