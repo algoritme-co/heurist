@@ -1,5 +1,4 @@
-#app/services/conversation_service.py
-
+# app/services/conversation_service.py
 
 from app.services.watsonx_service import query_watsonx
 
@@ -9,35 +8,35 @@ conversation_state = {
 }
 
 def initiate_conversation() -> str:
-    """Inicia a conversa com o usuário."""
+    """Starts the conversation with the user."""
     conversation_state["step"] = 1
-    return "Qual é a decisão principal que você deseja analisar? (ex: 'Aumentar o orçamento de marketing em 20%')"
+    return "What is the main decision you want to analyze? (e.g., 'Increase the marketing budget by 20%')"
 
 def collect_input(user_input: dict) -> str:
-    """Coleta as informações do usuário com base no estado atual."""
+    """Collects information from the user based on the current state."""
     step = conversation_state["step"]
     
     if step == 1:
-        # Armazena a decisão principal
+        # Stores the main decision
         conversation_state["data"]["decision"] = user_input.get("decision", "")
         conversation_state["step"] = 2
-        return "Quais são as variáveis relevantes para essa decisão? (ex: 'budget: 50000, timeline: 6 meses, target_market: Jovens adultos')"
+        return "What are the relevant variables for this decision? (e.g., 'budget: 50000, timeline: 6 months, target_market: Young adults')"
     
     elif step == 2:
-        # Armazena as variáveis
+        # Stores the variables
         conversation_state["data"]["variables"] = user_input.get("variables", {})
         conversation_state["step"] = 3
-        return "Ótimo! Vamos gerar cenários baseados nesses dados. Confirme se podemos continuar."
+        return "Great! We will generate scenarios based on this data. Please confirm if we can proceed."
 
     elif step == 3:
-        # Finaliza a coleta e inicia a simulação
-        return "Dados coletados. Por favor, envie uma solicitação para a rota '/simulate/' para gerar os cenários."
+        # Finalizes the collection and starts the simulation
+        return "Data collected. Please send a request to the '/simulate/' endpoint to generate the scenarios."
 
     else:
-        return "Conversa já finalizada. Reinicie se necessário."
+        return "Conversation already completed. Restart if necessary."
 
 def simulate_decision(input_data: dict) -> list:
-    """Simula cenários usando Watsonx."""
+    """Simulates scenarios using Watsonx."""
     decision = conversation_state["data"].get("decision", "")
     variables = conversation_state["data"].get("variables", {})
     response = query_watsonx(decision, variables)
